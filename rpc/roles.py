@@ -5,7 +5,7 @@ from flask import g
 
 from tools import rpc_tools, db, db_tools
 
-from sqlalchemy.exc import NoResultFound, ProgrammingError
+from sqlalchemy.exc import NoResultFound, ProgrammingError, IntegrityError
 from ..models.users import Role, UserRole, RolePermission
 from pylon.core.tools import web, log
 
@@ -71,9 +71,12 @@ class RPC:
                 Role.name == role_name,
             ).first()
             if role:
-                permission = RolePermission(role_id=role.id, permission=permission)
-                tenant_session.add(permission)
-                tenant_session.commit()
+                try:
+                    permission = RolePermission(role_id=role.id, permission=permission)
+                    tenant_session.add(permission)
+                    tenant_session.commit()
+                except IntegrityError:
+                    return False
             return True
 
     @web.rpc("admin_remove_permission_from_role", "remove_permission_from_role")
